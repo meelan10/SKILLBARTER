@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/shared/Logo";
 import Button from "../components/ui/Button";
+import { apiRequest } from "../api";
 
 const ALL_SKILLS = [
   "Python", "React", "Excel", "Figma", "Photoshop",
@@ -13,6 +14,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [teach, setTeach] = useState([]);
   const [learn, setLearn] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const toggle = (list, setList, skill) => {
@@ -21,7 +24,24 @@ export default function OnboardingPage() {
     );
   };
 
-  const handleFinish = () => navigate("/dashboard");
+  const handleFinish = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest("/users/me", {
+        method: "PATCH",
+        body: {
+          teachSkills: teach.map((name) => ({ name, level: "INTERMEDIATE" })),
+          learnSkills: learn.map((name) => ({ name, level: "BEGINNER" })),
+        },
+      });
+      navigate("/dashboard");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center px-4 py-12">
@@ -115,12 +135,13 @@ export default function OnboardingPage() {
               </Button>
               <Button
                 className="flex-1"
-                disabled={learn.length === 0}
+                disabled={learn.length === 0 || saving}
                 onClick={handleFinish}
               >
-                Finish setup
+                {saving ? "Saving..." : "Finish setup"}
               </Button>
             </div>
+            {error && <p className="mt-3 text-center text-sm text-red">{error}</p>}
           </div>
         )}
       </div>

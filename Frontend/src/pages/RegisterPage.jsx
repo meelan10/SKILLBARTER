@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function RegisterPage() {
     if (!email) return;
     setSubmitting(true);
     try {
-      await register({ name: email.split("@")[0], email });
+      await register({ name: email.split("@")[0], email, password });
       navigate("/onboarding");
     } finally {
       setSubmitting(false);
@@ -39,6 +40,15 @@ export default function RegisterPage() {
             placeholder="email@domain.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal/30"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Create a password (6+ characters)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
             className="w-full border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal/30"
             required
           />
