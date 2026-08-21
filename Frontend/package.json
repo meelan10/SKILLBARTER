@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
@@ -16,9 +17,9 @@
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.7",
     "@vitejs/plugin-react": "^4.4.1",
     "tailwindcss": "^4.1.7",
-    "@tailwindcss/vite": "^4.1.7",
     "vite": "^6.3.5"
   }
 }

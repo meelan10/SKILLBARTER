@@ -16,32 +16,49 @@ import ExchangeDetailPage from "./pages/ExchangeDetailPage";
 import ChatPage from "./pages/ChatPage";
 import SessionsPage from "./pages/SessionsPage";
 import SessionDetailPage from "./pages/SessionDetailPage";
+import AddSkillPage from "./pages/AddSkillPage";
+import RequestsPage from "./pages/RequestsPage";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+function AppRoutes() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+
+        <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/skills" element={<SkillsPage />} />
+          <Route path="/discover" element={<SkillsPage />} />
+          <Route path="/skills/add" element={<AddSkillPage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/exchanges" element={<ExchangesPage />} />
+          <Route path="/requests" element={<RequestsPage />} />
+          <Route path="/exchanges/:id" element={<ExchangeDetailPage />} />
+          <Route path="/chat/:id" element={<ChatPage />} />
+          <Route path="/sessions" element={<SessionsPage />} />
+          <Route path="/sessions/:id" element={<SessionDetailPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
 export default function App() {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const routes = <AppRoutes />;
+
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/notifications" element={<NotificationsPage />} />
-<Route path="/settings" element={<SettingsPage />} />
-          <Route path="/" element={<WelcomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
-
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/skills" element={<SkillsPage />} />
-            <Route path="/matches" element={<MatchesPage />} />
-            <Route path="/exchanges" element={<ExchangesPage />} />
-            <Route path="/exchanges/:id" element={<ExchangeDetailPage />} />
-            <Route path="/chat/:id" element={<ChatPage />} />
-            <Route path="/sessions" element={<SessionsPage />} />
-            <Route path="/sessions/:id" element={<SessionDetailPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      {googleClientId ? (
+        <GoogleOAuthProvider clientId={googleClientId}>{routes}</GoogleOAuthProvider>
+      ) : routes}
     </AuthProvider>
   );
 }

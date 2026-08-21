@@ -32,12 +32,22 @@ export function AuthProvider({ children }) {
     return result.user;
   };
 
+  const loginWithGoogle = async (credential) => {
+    const result = await apiRequest("/auth/google", {
+      method: "POST",
+      body: { credential },
+    });
+    localStorage.setItem("skillbarter_token", result.token);
+    setUser(result.user);
+    return result.user;
+  };
+
   const logout = () => {
     localStorage.removeItem("skillbarter_token");
     setUser(null);
   };
 
-  return <AuthContext.Provider value={{ user, loading, login, register, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

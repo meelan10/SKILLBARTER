@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { useAuth } from "../context/AuthContext";
 import { currentUser } from "../utils/mockData";
@@ -29,6 +30,12 @@ function ToggleRow({ label, description, defaultChecked = true }) {
 
 export default function SettingsPage() {
   const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="max-w-2xl">
@@ -74,7 +81,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Button variant="danger" className="mt-6" onClick={logout}>
+      <Button variant="danger" className="mt-6" onClick={handleLogout}>
         Log out
       </Button>
     </div>

@@ -9,9 +9,9 @@ import { useAuth } from "../../context/AuthContext";
 
 const mainNav = [
   { to: "/dashboard", label: "Home", icon: Home },
-  { to: "/skills", label: "Discover", icon: Search },
+  { to: "/discover", label: "Discover", icon: Search },
   { to: "/matches", label: "Matches", icon: ArrowLeftRight },
-  { to: "/exchanges", label: "Requests", icon: FileText, badge: 2 },
+  { to: "/requests", label: "Requests", icon: FileText, badge: 2 },
   { to: "/sessions", label: "Sessions", icon: Calendar },
   { to: "/chat/1", label: "Messages", icon: MessageSquare, badge: 1 },
 ];

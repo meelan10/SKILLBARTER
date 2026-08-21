@@ -1,14 +1,23 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import { z } from "zod";
 import { Exchange, Message, Notification, Session, Skill, User } from "../models/index.js";
 import { requireAuth, signToken } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
+import { OAuth2Client } from "google-auth-library";
 
 const router = Router();
 const publicUser = (user) => ({ id: user._id, name: user.name, email: user.email, university: user.university, department: user.department, year: user.year, bio: user.bio, location: user.location, teachSkills: user.teachSkills, learnSkills: user.learnSkills, availability: user.availability, format: user.format, rating: user.rating, reliability: user.reliability });
 const credentials = z.object({ email: z.string().email(), password: z.string().min(6) });
 const registerSchema = credentials.extend({ name: z.string().min(2).max(80) });
+const googleSchema = z.object({ credential: z.string().min(20) });
+const skillSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  category: z.string().trim().min(2).max(40),
+  description: z.string().trim().max(300).optional().default(""),
+});
+const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
 
 router.post("/auth/register", validate(registerSchema), async (req, res) => {
   const { name, email, password } = req.body;
@@ -25,6 +34,35 @@ router.post("/auth/login", validate(credentials), async (req, res) => {
   res.json({ user: publicUser(user), token: signToken(user.id) });
 });
 
+router.post("/auth/google", validate(googleSchema), async (req, res) => {
+  if (!googleClient || !process.env.GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ message: "Google authentication is not configured" });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: req.body.credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload?.email || !payload.email_verified) {
+      return res.status(401).json({ message: "Google account email is not verified" });
+    }
+
+    let user = await User.findOne({ email: payload.email });
+    if (!user) {
+      user = await User.create({
+        name: payload.name || payload.email.split("@")[0],
+        email: payload.email,
+        passwordHash: await bcrypt.hash(crypto.randomUUID(), 12),
+      });
+    }
+    res.json({ user: publicUser(user), token: signToken(user.id) });
+  } catch {
+    res.status(401).json({ message: "Invalid Google credential" });
+  }
+});
+
 router.get("/auth/me", requireAuth, (req, res) => res.json({ user: publicUser(req.user) }));
 
 router.get("/users/me", requireAuth, (req, res) => res.json({ user: publicUser(req.user) }));
@@ -36,7 +74,7 @@ router.patch("/users/me", requireAuth, async (req, res) => {
 });
 
 router.get("/skills", async (_req, res) => res.json({ skills: await Skill.find().sort({ category: 1, name: 1 }) }));
-router.post("/skills", requireAuth, async (req, res) => res.status(201).json({ skill: await Skill.create(req.body) }));
+router.post("/skills", requireAuth, validate(skillSchema), async (req, res) => res.status(201).json({ skill: await Skill.create(req.body) }));
 
 router.get("/matches", requireAuth, async (req, res) => {
   const users = await User.find({ _id: { $ne: req.user.id } }).limit(50);

@@ -1,9 +1,16 @@
 import SessionCard from "../components/shared/SessionCard";
-import { sessions } from "../utils/mockSessions";
+import { useResource } from "../hooks/useApi";
 
 export default function SessionsPage() {
-  const upcoming = sessions.filter((s) => s.status !== "COMPLETED");
-  const completed = sessions.filter((s) => s.status === "COMPLETED");
+  const { data: apiSessions = [], loading, error } = useResource("/sessions", "sessions");
+  const sessions = apiSessions.map((session) => ({
+    ...session,
+    id: session._id,
+    partner: session.teacher?.name || session.learner?.name || "Partner",
+    role: session.teacher?.name ? "learner" : "teacher",
+  }));
+  const upcoming = sessions.filter((session) => session.status !== "COMPLETED");
+  const completed = sessions.filter((session) => session.status === "COMPLETED");
 
   return (
     <div>
@@ -11,6 +18,9 @@ export default function SessionsPage() {
       <p className="text-muted mt-1">
         Scheduled and completed skill exchange sessions.
       </p>
+
+      {loading && <p className="mt-8 text-sm text-muted">Loading sessions...</p>}
+      {error && <p className="mt-8 text-sm text-red">{error}</p>}
 
       <div className="mt-8">
         <p className="text-xs font-semibold tracking-wide text-muted mb-4">
