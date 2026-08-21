@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────
+// USER + PROFILE
+// ─────────────────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile      Profile?
+  skills       UserSkill[]
+  availability Availability[]
+
+  sentRequests     ExchangeRequest[] @relation("Sender")
+  receivedRequests ExchangeRequest[] @relation("Receiver")
+
+  messages Message[]
+
+  teachingSessions Session[] @relation("Teacher")
+  learningSessions Session[] @relation("Learner")
+
+  reviewsGiven    Review[] @relation("Reviewer")
+  reviewsReceived Review[] @relation("ReviewedUser")
+
+  reportsMade     Report[] @relation("Reporter")
+  reportsReceived Report[] @relation("ReportedUser")
+
+  blocksMade     Block[] @relation("Blocker")
+  blocksReceived Block[] @relation("BlockedUser")
+
+  notifications Notification[]
+}
+
+model Profile {
+  id                Int     @id @default(autoincrement())
+  userId            Int     @unique
+  university        String?
+  department        String?
+  bio               String?
+  avatar            String?
+  location          String?
+  preferredFormat   Format  @default(BOTH)
+  rating            Float   @default(0)
+  totalReviews      Int     @default(0)
+  completedSessions Int     @default(0)
+  reliabilityScore  Float   @default(100)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Format {
+  ONLINE
+  CAMPUS
+  BOTH
+}
+
+// ─────────────────────────────────────────────────────────
+// SKILLS
+// ─────────────────────────────────────────────────────────
+
+model Skill {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  category    String
+  description String?
+  createdAt   DateTime @default(now())
+
+  users             UserSkill[]
+  exchangesTeaching ExchangeRequest[] @relation("TeachSkill")
+  exchangesLearning ExchangeRequest[] @relation("LearnSkill")
+  sessions          Session[]         @relation("SessionSkill")
+}
+
+model UserSkill {
+  id      Int        @id @default(autoincrement())
+  userId  Int
+  skillId Int
+  type    SkillType
+  level   SkillLevel
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId, type])
+}
+
+enum SkillType {
+  TEACH
+  LEARN
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Availability {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  day       String
+  startTime String
+  endTime   String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────
+// EXCHANGE + CHAT
+// ─────────────────────────────────────────────────────────
+
+model ExchangeRequest {
+  id           Int            @id @default(autoincrement())
+  senderId     Int
+  receiverId   Int
+  teachSkillId Int
+  learnSkillId Int
+  message      String?
+  status       ExchangeStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sender     User  @relation("Sender", fields: [senderId], references: [id])
+  receiver   User  @relation("Receiver", fields: [receiverId], references: [id])
+  teachSkill Skill @relation("TeachSkill", fields: [teachSkillId], references: [id])
+  learnSkill Skill @relation("LearnSkill", fields: [learnSkillId], references: [id])
+
+  conversation Conversation?
+  sessions     Session[]
+}
+
+enum ExchangeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  COMPLETED
+}
+
+model Conversation {
+  id         Int      @id @default(autoincrement())
+  exchangeId Int      @unique
+  createdAt  DateTime @default(now())
+
+  exchange ExchangeRequest @relation(fields: [exchangeId], references: [id])
+  messages Message[]
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────
+// SESSIONS + VERIFICATION
+// ─────────────────────────────────────────────────────────
+
+model Session {
+  id         Int @id @default(autoincrement())
+  exchangeId Int
+  teacherId  Int
+  learnerId  Int
+  skillId    Int
+
+  date      DateTime
+  startTime String
+  endTime   String
+  location  String?
+  status    SessionStatus @default(SCHEDULED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exchange ExchangeRequest @relation(fields: [exchangeId], references: [id])
+  teacher  User            @relation("Teacher", fields: [teacherId], references: [id])
+  learner  User            @relation("Learner", fields: [learnerId], references: [id])
+  skill    Skill           @relation("SessionSkill", fields: [skillId], references: [id])
+
+  verification SessionVerification?
+  reviews      Review[]
+}
+
+enum SessionStatus {
+  SCHEDULED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+model SessionVerification {
+  id              Int       @id @default(autoincrement())
+  sessionId       Int       @unique
+  code            String
+  teacherVerified Boolean   @default(false)
+  learnerVerified Boolean   @default(false)
+  expiresAt       DateTime
+  verifiedAt      DateTime?
+
+  session Session @relation(fields: [sessionId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────
+// REVIEWS
+// ─────────────────────────────────────────────────────────
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  sessionId      Int
+  reviewerId     Int
+  reviewedUserId Int
+
+  teachingRating      Int
+  communicationRating Int
+  reliabilityRating   Int
+  knowledgeRating     Int
+  overallRating       Float
+
+  wouldExchangeAgain Boolean
+  comment            String?
+
+  createdAt DateTime @default(now())
+
+  session      Session @relation(fields: [sessionId], references: [id])
+  reviewer     User    @relation("Reviewer", fields: [reviewerId], references: [id])
+  reviewedUser User    @relation("ReviewedUser", fields: [reviewedUserId], references: [id])
+
+  @@unique([sessionId, reviewerId])
+}
+
+// ─────────────────────────────────────────────────────────
+// SAFETY: REPORT + BLOCK
+// ─────────────────────────────────────────────────────────
+
+model Report {
+  id Int @id @default(autoincrement())
+
+  reporterId     Int
+  reportedUserId Int
+
+  reason      ReportReason
+  description String?
+  status      String @default("PENDING")
+
+  createdAt DateTime @default(now())
+
+  reporter     User @relation("Reporter", fields: [reporterId], references: [id])
+  reportedUser User @relation("ReportedUser", fields: [reportedUserId], references: [id])
+}
+
+enum ReportReason {
+  HARASSMENT
+  INAPPROPRIATE_BEHAVIOR
+  FAKE_SKILL
+  NO_SHOW
+  SPAM
+  OTHER
+}
+
+model Block {
+  id Int @id @default(autoincrement())
+
+  blockerId     Int
+  blockedUserId Int
+
+  createdAt DateTime @default(now())
+
+  blocker     User @relation("Blocker", fields: [blockerId], references: [id])
+  blockedUser User @relation("BlockedUser", fields: [blockedUserId], references: [id])
+
+  @@unique([blockerId, blockedUserId])
+}
+
+// ─────────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────────
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
